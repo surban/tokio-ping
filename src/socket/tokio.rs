@@ -21,8 +21,9 @@ impl Socket {
         domain: Domain,
         type_: Type,
         protocol: Protocol,
+        bind_addr: Option<SockAddr>,
     ) -> io::Result<Self> {
-        let socket = mio::Socket::new(domain, type_, protocol)?;
+        let socket = mio::Socket::new(domain, type_, protocol, bind_addr)?;
         let socket = PollEvented::new(socket)?;
         Ok(Self {
             socket: Arc::new(socket),

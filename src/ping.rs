@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, net::{Ipv4Addr, Ipv6Addr}};
 
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
@@ -256,9 +256,11 @@ enum Sockets {
 }
 
 impl Sockets {
-    fn new() -> io::Result<Self> {
-        let mb_v4socket = Socket::new(Domain::ipv4(), Type::raw(), Protocol::icmpv4());
-        let mb_v6socket = Socket::new(Domain::ipv6(), Type::raw(), Protocol::icmpv6());
+    fn new(bind_addr_v4: Option<Ipv4Addr>, bind_addr_v6: Option<Ipv6Addr>) -> io::Result<Self> {
+        let bind_addr_v4 = bind_addr_v4.map(|ip| SocketAddr::new(ip.into(), 0).into());
+        let mb_v4socket = Socket::new(Domain::ipv4(), Type::raw(), Protocol::icmpv4(), bind_addr_v4);
+        let bind_addr_v6 = bind_addr_v6.map(|ip| SocketAddr::new(ip.into(), 0).into());
+        let mb_v6socket = Socket::new(Domain::ipv6(), Type::raw(), Protocol::icmpv6(), bind_addr_v6);
         match (mb_v4socket, mb_v6socket) {
             (Ok(v4_socket), Ok(v6_socket)) => Ok(Sockets::Both {
                 v4: v4_socket,
@@ -290,7 +292,13 @@ impl Sockets {
 impl Pinger {
     /// Create new `Pinger` instance, will fail if unable to create both IPv4 and IPv6 sockets.
     pub async fn new() -> Result<Self, Error> {
-        let sockets = Sockets::new()?;
+        Self::bind(None, None).await
+    }
+
+    /// Create new `Pinger` instance, optionally binding to the specified IPv4 and IPv6
+    /// addresses.
+    pub async fn bind(bind_addr_v4: Option<Ipv4Addr>, bind_addr_v6: Option<Ipv6Addr>) -> Result<Self, Error> {
+        let sockets = Sockets::new(bind_addr_v4, bind_addr_v6)?;
 
         let state = PingState::new();
 

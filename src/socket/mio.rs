@@ -11,8 +11,11 @@ pub struct Socket {
 }
 
 impl Socket {
-    pub fn new(domain: Domain, type_: Type, protocol: Protocol) -> io::Result<Self> {
+    pub fn new(domain: Domain, type_: Type, protocol: Protocol, bind_addr: Option<SockAddr>) -> io::Result<Self> {
         let socket = Socket2::new(domain, type_, Some(protocol))?;
+        if let Some(bind_addr) = bind_addr {
+            socket.bind(&bind_addr)?;
+        }
         socket.set_nonblocking(true)?;
 
         Ok(Self { socket: socket })
